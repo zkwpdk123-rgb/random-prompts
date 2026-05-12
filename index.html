@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>scene roller</title>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  min-height: 100vh;
+  background: #0d0d0f;
+  color: #c8c4bc;
+  font-family: 'Crimson Pro', Georgia, serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 16px 60px;
+}
+::selection { background: rgba(180,160,120,0.25); }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: #3a3830; border-radius: 2px; }
+
+.wrap { width: 100%; max-width: 640px; }
+h1 { font-size: 22px; font-weight: 300; color: #e0dbd0; letter-spacing: 0.02em; }
+.sub { font-size: 13px; color: #555; font-style: italic; line-height: 1.5; margin-top: 4px; }
+.sub code { color: #b8a882; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-style: normal; }
+
+.card { width: 100%; background: #111010; border: 1px solid #1e1d1b; border-radius: 4px; overflow: hidden; margin-top: 28px; }
+
+.tabs { display: flex; gap: 2px; padding: 10px 12px 0; border-bottom: 1px solid #1a1918; }
+.tab {
+  background: none; border: none; cursor: pointer;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.12em;
+  padding: 6px 16px; border-radius: 2px; transition: all 0.15s; color: #555;
+}
+.tab.on { background: #1e1d1b; color: #b8a882; }
+.tab:not(.on):hover { color: #888; }
+
+.pane { padding: 20px; display: none; flex-direction: column; gap: 14px; }
+.pane.on { display: flex; }
+
+.lbl { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: #555; margin-bottom: 6px; }
+
+.chips { display: flex; flex-wrap: wrap; }
+.chip {
+  display: inline-block; background: #1a1918; border: 1px solid #2e2d2b;
+  color: #b8a882; font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  padding: 2px 8px; border-radius: 2px; cursor: pointer; margin: 2px;
+  user-select: none; transition: border-color 0.1s;
+}
+.chip:hover { border-color: #b8a882; }
+.chip.dim { color: #555; border-color: #1e1d1b; }
+
+textarea, input[type=text] {
+  width: 100%; background: #0d0d0f; border: 1px solid #1e1d1b;
+  border-radius: 2px; color: #c8c4bc; padding: 10px 12px; outline: none;
+  caret-color: #b8a882; transition: border-color 0.15s;
+}
+textarea:focus, input[type=text]:focus { border-color: #2e2d2b; }
+textarea { min-height: 100px; resize: vertical; font-size: 14px; line-height: 1.7; font-family: 'Crimson Pro', serif; }
+input[type=text] { font-size: 13px; font-family: 'JetBrains Mono', monospace; }
+input.opts { font-family: 'Crimson Pro', serif; font-size: 13px; }
+
+.btns { display: flex; gap: 8px; }
+.roll-btn {
+  background: #b8a882; color: #0d0d0f; border: none; cursor: pointer;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.14em;
+  padding: 10px 28px; border-radius: 2px; transition: all 0.15s;
+}
+.roll-btn:hover { background: #cfc0a0; }
+.roll-btn:active { transform: scale(0.98); }
+.copy-btn {
+  background: transparent; border: 1px solid #2e2d2b; color: #777; cursor: pointer;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.12em;
+  padding: 10px 20px; border-radius: 2px; transition: all 0.15s;
+}
+.copy-btn:hover { border-color: #555; color: #aaa; }
+.copy-btn.ok { border-color: #6a8a6a; color: #8aaa8a; }
+
+.out-wrap { display: none; flex-direction: column; gap: 6px; }
+.out-box {
+  background: #0d0d0f; border: 1px solid #1e1d1b; border-radius: 2px;
+  padding: 10px 12px; font-size: 14px; line-height: 1.7;
+  font-family: 'Crimson Pro', serif; color: #e0dbd0; white-space: pre-wrap; word-break: break-word;
+}
+
+/* History & Favorites */
+.hitem {
+  background: #0d0d0f; border: 1px solid #1a1918; border-radius: 2px;
+  padding: 10px 12px; display: flex; gap: 8px; align-items: flex-start;
+  transition: border-color 0.12s;
+}
+.hitem:hover { border-color: #2e2d2b; }
+.htext {
+  flex: 1; font-size: 13px; line-height: 1.6; color: #a0998e;
+  white-space: pre-wrap; word-break: break-word; cursor: pointer;
+}
+.htext:hover { color: #c8c4bc; }
+.hactions { display: flex; flex-direction: column; gap: 4px; flex: 0 0 auto; }
+.icon-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 14px; line-height: 1; padding: 2px 4px;
+  transition: color 0.15s; color: #2e2d2b;
+}
+.icon-btn:hover { color: #888; }
+.icon-btn.starred { color: #b8a882; }
+.icon-btn.del:hover { color: #aa7070; }
+.empty-msg { font-size: 13px; color: #333; font-style: italic; text-align: center; padding: 20px 0; }
+
+/* Group items */
+.gitem { background: #0d0d0f; border: 1px solid #1a1918; border-radius: 2px; overflow: hidden; }
+.gheader { display: flex; align-items: center; gap: 8px; padding: 10px 14px; cursor: pointer; }
+.gtag { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #b8a882; flex: 0 0 auto; }
+.gprev { font-size: 12px; color: #444; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.delbtn { background: none; border: none; cursor: pointer; color: #2e2d2b; font-size: 18px; line-height: 1; padding: 0 4px; transition: color 0.15s; flex: 0 0 auto; }
+.delbtn:hover { color: #aa7070; }
+.gbody { padding: 0 14px 12px; display: none; flex-direction: column; gap: 8px; }
+.gbody.on { display: flex; }
+
+.addbtn {
+  background: none; border: 1px dashed #2e2d2b; color: #555; cursor: pointer;
+  width: 100%; padding: 10px; font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; letter-spacing: 0.1em; border-radius: 2px; transition: all 0.15s;
+}
+.addbtn:hover { border-color: #555; color: #888; }
+
+.footer { margin-top: 20px; font-size: 11px; color: #2e2d2b; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.08em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:4px;">
+    <h1>scene roller</h1>
+    <span style="font-size:13px;color:#444;font-style:italic;">for NAI</span>
+  </div>
+  <p class="sub">write <code>[Tag]</code> in your text — roll to replace with a random pick</p>
+
+  <div class="card">
+    <div class="tabs">
+      <button class="tab on" id="tab-editor">EDITOR</button>
+      <button class="tab" id="tab-(inputHistory)">HISTORY</button>
+      <button class="tab" id="tab-favs">FAVORITES</button>
+      <button class="tab" id="tab-groups">TAGS (0)</button>
+    </div>
+
+    <!-- Editor -->
+    <div class="pane on" id="pane-editor">
+      <div>
+        <div class="lbl">AVAILABLE TAGS — click to insert</div>
+        <div class="chips" id="chips"></div>
+      </div>
+      <div>
+        <div class="lbl">INPUT</div>
+        <textarea id="input-area" placeholder="[Season] abandoned station, [Time]&#10;[Weather], crumbling platform"></textarea>
+      </div>
+      <div class="btns">
+        <button class="roll-btn" id="btn-roll">ROLL</button>
+        <button class="copy-btn" id="btn-copy">ROLL &amp; COPY</button>
+      </div>
+      <div class="out-wrap" id="out-wrap">
+        <div class="lbl">RESULT</div>
+        <div class="out-box" id="out-box"></div>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="pane" id="pane-(inputHistory)">
+      <div id="(inputHistory)-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+
+    <!-- Favorites -->
+    <div class="pane" id="pane-favs">
+      <div id="favs-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+
+    <!-- Tags -->
+    <div class="pane" id="pane-groups">
+      <div id="glist" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <button class="addbtn" id="btn-add">+ add tag group</button>
+    </div>
+  </div>
+
+  <p class="footer">all data saved to browser — works offline</p>
+</div>
+
+<script>
+var SKEY_GROUPS  = "sr-groups-v2";
+var SKEY_INPUTHISTORY = "sr-(inputHistory)-v2";
+var SKEY_FAVS    = "sr-favs-v2";
+var MAX_HISTORY  = 30;
+
+var groups  = [];
+var inputHistory = [];  // [{id, text}]
+var favs    = [];  // [{id, text, label}]
+var lastOut = "";
+var openId  = null;
+
+var DEFAULT_GROUPS = [
+  { id:"g1", trigger:"Season", options:["spring","autumn","winter","summer"] },
+  { id:"g2", trigger:"Weather", options:["rainy","foggy","clear","overcast"] },
+  { id:"g3", trigger:"Time",   options:["dawn","dusk","midnight","noon"] }
+];
+
+function uid() { return Math.random().toString(36).slice(2,9); }
+
+function loadAll() {
+  try { var r = localStorage.getItem(SKEY_GROUPS);  groups  = r ? JSON.parse(r) : DEFAULT_GROUPS.slice(); } catch(e) { groups  = DEFAULT_GROUPS.slice(); }
+  try { var r = localStorage.getItem(SKEY_INPUTHISTORY); (inputHistory) = r ? JSON.parse(r) : []; } catch(e) { inputHistory = []; }
+  try { var r = localStorage.getItem(SKEY_FAVS);    favs    = r ? JSON.parse(r) : []; } catch(e) { favs    = []; }
+}
+function saveGroups()  { try { localStorage.setItem(SKEY_GROUPS,  JSON.stringify(groups));  } catch(e){} }
+function saveInputHistory() { try { localStorage.setItem(SKEY_INPUTHISTORY, JSON.stringify(inputHistory)); } catch(e){} }
+function saveFavs()    { try { localStorage.setItem(SKEY_FAVS,    JSON.stringify(favs));    } catch(e){} }
+
+function doRoll(text) {
+  var result = text;
+  for (var i = 0; i < groups.length; i++) {
+    var g = groups[i];
+    var esc = g.trigger.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    var pat = new RegExp('\\[' + esc + '\\]', 'gi');
+    var opts = g.options.filter(function(o){ return o.trim(); });
+    if (!opts.length) continue;
+    result = result.replace(pat, function() {
+      return opts[Math.floor(Math.random() * opts.length)];
+    });
+  }
+  return result;
+}
+
+function copyText(text) {
+  var ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.top = "-9999px";
+  ta.style.left = "-9999px";
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try { document.execCommand("copy"); } catch(e) {}
+  document.body.removeChild(ta);
+}
+
+function addToHistory(text) {
+  if (!text.trim()) return;
+  // remove duplicate
+  (inputHistory) = inputHistory.filter(function(h){ return h.text !== text; });
+  inputHistory.unshift({ id: uid(), text: text });
+  if (inputHistory.length > MAX_HISTORY) (inputHistory) = inputHistory.slice(0, MAX_HISTORY);
+  saveInputHistory();
+}
+
+function isFav(text) {
+  return favs.some(function(f){ return f.text === text; });
+}
+
+function toggleFav(text) {
+  if (isFav(text)) {
+    favs = favs.filter(function(f){ return f.text !== text; });
+  } else {
+    favs.unshift({ id: uid(), text: text });
+  }
+  saveFavs();
+}
+
+function loadIntoEditor(text) {
+  document.getElementById("input-area").value = text;
+  lastOut = "";
+  document.getElementById("out-wrap").style.display = "none";
+  document.getElementById("btn-copy").textContent = "ROLL & COPY";
+  document.getElementById("btn-copy").classList.remove("ok");
+  switchTab("editor");
+}
+
+/* ---- render (inputHistory) item ---- */
+function makeHItem(text, starCallback, delCallback) {
+  var item = document.createElement("div");
+  item.className = "hitem";
+
+  var txt = document.createElement("div");
+  txt.className = "htext";
+  txt.textContent = text;
+  txt.title = "click to load";
+  txt.onclick = function() { loadIntoEditor(text); };
+
+  var acts = document.createElement("div");
+  acts.className = "hactions";
+
+  var star = document.createElement("button");
+  star.className = "icon-btn" + (isFav(text) ? " starred" : "");
+  star.textContent = "★";
+  star.title = isFav(text) ? "remove from favorites" : "add to favorites";
+  star.onclick = function() {
+    toggleFav(text);
+    star.classList.toggle("starred", isFav(text));
+    star.title = isFav(text) ? "remove from favorites" : "add to favorites";
+    if (starCallback) starCallback();
+  };
+
+  var del = document.createElement("button");
+  del.className = "icon-btn del";
+  del.textContent = "×";
+  del.title = "remove";
+  del.onclick = function() {
+    item.style.opacity = "0";
+    item.style.transition = "opacity 0.15s";
+    setTimeout(function() {
+      if (delCallback) delCallback();
+    }, 150);
+  };
+
+  acts.appendChild(star);
+  acts.appendChild(del);
+  item.appendChild(txt);
+  item.appendChild(acts);
+  return item;
+}
+
+function renderHistory() {
+  var list = document.getElementById("(inputHistory)-list");
+  list.innerHTML = "";
+  if (!inputHistory.length) {
+    var msg = document.createElement("div");
+    msg.className = "empty-msg";
+    msg.textContent = "no (inputHistory) yet";
+    list.appendChild(msg);
+    return;
+  }
+  for (var i = 0; i < inputHistory.length; i++) {
+    (function(h) {
+      var el = makeHItem(
+        h.text,
+        function() { renderFavs(); },
+        function() {
+          (inputHistory) = inputHistory.filter(function(x){ return x.id !== h.id; });
+          saveInputHistory(); renderHistory();
+        }
+      );
+      list.appendChild(el);
+    })(inputHistory[i]);
+  }
+}
+
+function renderFavs() {
+  var list = document.getElementById("favs-list");
+  list.innerHTML = "";
+  if (!favs.length) {
+    var msg = document.createElement("div");
+    msg.className = "empty-msg";
+    msg.textContent = "no favorites yet — star an item from (inputHistory)";
+    list.appendChild(msg);
+    return;
+  }
+  for (var i = 0; i < favs.length; i++) {
+    (function(f) {
+      var el = makeHItem(
+        f.text,
+        function() { renderHistory(); renderFavs(); },
+        function() {
+          favs = favs.filter(function(x){ return x.id !== f.id; });
+          saveFavs(); renderFavs(); renderHistory();
+        }
+      );
+      list.appendChild(el);
+    })(favs[i]);
+  }
+}
+
+/* ---- chips ---- */
+function renderChips() {
+  var row = document.getElementById("chips");
+  row.innerHTML = "";
+  for (var i = 0; i < groups.length; i++) {
+    (function(g) {
+      var c = document.createElement("span");
+      c.className = "chip";
+      c.textContent = "[" + g.trigger + "]";
+      c.onclick = function() {
+        var ta = document.getElementById("input-area");
+        var pos = ta.selectionStart || 0;
+        var v = ta.value;
+        var ins = "[" + g.trigger + "]";
+        ta.value = v.slice(0, pos) + ins + v.slice(pos);
+        ta.selectionStart = ta.selectionEnd = pos + ins.length;
+        ta.focus();
+        resetOutput();
+      };
+      row.appendChild(c);
+    })(groups[i]);
+  }
+  var addChip = document.createElement("span");
+  addChip.className = "chip dim";
+  addChip.textContent = "+ new tag";
+  addChip.onclick = function() { addGroup(); switchTab("groups"); };
+  row.appendChild(addChip);
+
+  document.getElementById("tab-groups").textContent = "TAGS (" + groups.length + ")";
+}
+
+/* ---- groups ---- */
+function renderGroups() {
+  var list = document.getElementById("glist");
+  list.innerHTML = "";
+  for (var i = 0; i < groups.length; i++) {
+    (function(g) {
+      var item = document.createElement("div");
+      item.className = "gitem";
+
+      var hdr = document.createElement("div");
+      hdr.className = "gheader";
+
+      var tagSpan = document.createElement("span");
+      tagSpan.className = "gtag";
+      tagSpan.textContent = "[" + g.trigger + "]";
+
+      var prev = document.createElement("span");
+      prev.className = "gprev";
+      prev.textContent = g.options.filter(function(o){return o.trim();}).join(" / ");
+
+      var del = document.createElement("button");
+      del.className = "delbtn";
+      del.textContent = "×";
+      del.onclick = function(e) {
+        e.stopPropagation();
+        groups = groups.filter(function(x){ return x.id !== g.id; });
+        saveGroups(); renderChips(); renderGroups();
+      };
+
+      hdr.appendChild(tagSpan);
+      hdr.appendChild(prev);
+      hdr.appendChild(del);
+      hdr.onclick = function() {
+        openId = (openId === g.id) ? null : g.id;
+        renderGroups();
+      };
+
+      var body = document.createElement("div");
+      body.className = "gbody" + (openId === g.id ? " on" : "");
+
+      var tLbl = document.createElement("div"); tLbl.className = "lbl"; tLbl.textContent = "TAG NAME";
+      var tIn = document.createElement("input"); tIn.type = "text"; tIn.value = g.trigger;
+      tIn.oninput = function(e) { g.trigger = e.target.value; tagSpan.textContent = "[" + g.trigger + "]"; saveGroups(); renderChips(); };
+
+      var oLbl = document.createElement("div"); oLbl.className = "lbl"; oLbl.textContent = "OPTIONS (comma separated)";
+      var oIn = document.createElement("input"); oIn.type = "text"; oIn.className = "opts"; oIn.value = g.options.join(", "); oIn.placeholder = "option1, option2, option3";
+      oIn.oninput = function(e) { g.options = e.target.value.split(",").map(function(s){return s.trim();}); prev.textContent = g.options.filter(function(o){return o;}).join(" / "); saveGroups(); renderChips(); };
+
+      body.appendChild(tLbl); body.appendChild(tIn);
+      body.appendChild(oLbl); body.appendChild(oIn);
+      item.appendChild(hdr); item.appendChild(body);
+      list.appendChild(item);
+    })(groups[i]);
+  }
+}
+
+function addGroup() {
+  var g = { id: uid(), trigger: "NewTag", options: ["option1", "option2"] };
+  groups.push(g); openId = g.id;
+  saveGroups(); renderChips(); renderGroups();
+}
+
+/* ---- tabs ---- */
+var TAB_IDS = ["editor","(inputHistory)","favs","groups"];
+function switchTab(name) {
+  TAB_IDS.forEach(function(t) {
+    document.getElementById("tab-" + t).classList.toggle("on", t === name);
+    document.getElementById("pane-" + t).classList.toggle("on", t === name);
+  });
+  if (name === "(inputHistory)") renderHistory();
+  if (name === "favs") renderFavs();
+}
+TAB_IDS.forEach(function(t) {
+  document.getElementById("tab-" + t).onclick = function() { switchTab(t); };
+});
+
+/* ---- output helpers ---- */
+function resetOutput() {
+  lastOut = "";
+  document.getElementById("out-wrap").style.display = "none";
+  document.getElementById("btn-copy").textContent = "ROLL & COPY";
+  document.getElementById("btn-copy").classList.remove("ok");
+}
+
+function showOutput(text) {
+  document.getElementById("out-box").textContent = text;
+  document.getElementById("out-wrap").style.display = "flex";
+}
+
+function flashCopied() {
+  var btn = document.getElementById("btn-copy");
+  btn.textContent = "COPIED ✓";
+  btn.classList.add("ok");
+  setTimeout(function() { btn.textContent = "COPY"; btn.classList.remove("ok"); }, 1800);
+}
+
+/* ---- roll & copy ---- */
+document.getElementById("btn-roll").onclick = function() {
+  var text = document.getElementById("input-area").value;
+  if (!text.trim()) return;
+  lastOut = doRoll(text);
+  showOutput(lastOut);
+  document.getElementById("btn-copy").textContent = "COPY";
+  document.getElementById("btn-copy").classList.remove("ok");
+};
+
+document.getElementById("btn-copy").onclick = function() {
+  var text = document.getElementById("input-area").value;
+  if (!text.trim()) return;
+  if (!lastOut) {
+    lastOut = doRoll(text);
+    showOutput(lastOut);
+  }
+  copyText(lastOut);
+  addToHistory(document.getElementById("input-area").value);
+  flashCopied();
+};
+
+document.getElementById("input-area").oninput = function() { resetOutput(); };
+document.getElementById("btn-add").onclick = addGroup;
+
+/* ---- init ---- */
+loadAll();
+renderChips();
+renderGroups();
+</script>
+</body>
+</html>
